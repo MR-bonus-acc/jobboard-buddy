@@ -2,11 +2,63 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import Index from "./pages/Index";
+import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import DashboardLayout from "./components/layout/DashboardLayout";
+import Dashboard from "./pages/dashboard/Dashboard";
+import Jobs from "./pages/dashboard/Jobs";
+import JobKanban from "./pages/dashboard/JobKanban";
+import Candidates from "./pages/dashboard/Candidates";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import ManageUsers from "./pages/admin/ManageUsers";
 
 const queryClient = new QueryClient();
+
+function ProtectedRoute({ children, requiredRole }: { children: React.ReactNode; requiredRole?: 'admin' | 'customer' }) {
+  const { user, loading, role } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  if (requiredRole && role !== requiredRole) {
+    return <Navigate to={role === 'admin' ? '/admin' : '/dashboard'} replace />;
+  }
+
+  return <DashboardLayout>{children}</DashboardLayout>;
+}
+
+function AppRoutes() {
+  return (
+    <Routes>
+      <Route path="/" element={<Index />} />
+      <Route path="/auth" element={<Auth />} />
+      
+      {/* Customer routes */}
+      <Route path="/dashboard" element={<ProtectedRoute requiredRole="customer"><Dashboard /></ProtectedRoute>} />
+      <Route path="/dashboard/jobs" element={<ProtectedRoute requiredRole="customer"><Jobs /></ProtectedRoute>} />
+      <Route path="/dashboard/jobs/:jobId" element={<ProtectedRoute requiredRole="customer"><JobKanban /></ProtectedRoute>} />
+      <Route path="/dashboard/candidates" element={<ProtectedRoute requiredRole="customer"><Candidates /></ProtectedRoute>} />
+      
+      {/* Admin routes */}
+      <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute>} />
+      <Route path="/admin/users" element={<ProtectedRoute requiredRole="admin"><ManageUsers /></ProtectedRoute>} />
+      
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+}
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -14,11 +66,9 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
