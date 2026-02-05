@@ -57,6 +57,26 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))",
+        },
+        warning: {
+          DEFAULT: "hsl(var(--warning))",
+          foreground: "hsl(var(--warning-foreground))",
+        },
+        info: {
+          DEFAULT: "hsl(var(--info))",
+          foreground: "hsl(var(--info-foreground))",
+        },
+        stage: {
+          applied: "hsl(var(--stage-applied))",
+          screening: "hsl(var(--stage-screening))",
+          interview: "hsl(var(--stage-interview))",
+          offer: "hsl(var(--stage-offer))",
+          hired: "hsl(var(--stage-hired))",
+          rejected: "hsl(var(--stage-rejected))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
