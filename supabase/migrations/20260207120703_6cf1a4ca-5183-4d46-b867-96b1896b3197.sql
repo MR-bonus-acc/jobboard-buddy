@@ -1,0 +1,1 @@
+ALTER TABLE public.candidates ADD COLUMN linkedin_url TEXT;
