@@ -12,7 +12,7 @@ interface Stats {
 }
 
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
   const [stats, setStats] = useState<Stats>({ totalJobs: 0, totalCandidates: 0, hiredCandidates: 0, activeJobs: 0 });
   const [loading, setLoading] = useState(true);
 
@@ -20,24 +20,35 @@ export default function Dashboard() {
     const fetchStats = async () => {
       if (!user) return;
 
+      const isAdmin = role === 'admin';
+      const userIdFilter = isAdmin ? undefined : user.id;
+
       const [jobsRes, candidatesRes, hiredRes, activeRes] = await Promise.all([
-        supabase.from('jobs').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
-        supabase.from('candidates').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
-        supabase.from('candidates').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('stage', 'hired'),
-        supabase.from('jobs').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('status', 'open'),
+        userIdFilter
+          ? supabase.from('jobs').select('id', { count: 'exact', head: true }).eq('user_id', userIdFilter)
+          : supabase.from('jobs').select('id', { count: 'exact', head: true }),
+        userIdFilter
+          ? supabase.from('candidates').select('id', { count: 'exact', head: true }).eq('user_id', userIdFilter)
+          : supabase.from('candidates').select('id', { count: 'exact', head: true }),
+        userIdFilter
+          ? supabase.from('candidates').select('id', { count: 'exact', head: true }).eq('stage', 'hired').eq('user_id', userIdFilter)
+          : supabase.from('candidates').select('id', { count: 'exact', head: true }).eq('stage', 'hired'),
+        userIdFilter
+          ? supabase.from('jobs').select('id', { count: 'exact', head: true }).eq('status', 'open').eq('user_id', userIdFilter)
+          : supabase.from('jobs').select('id', { count: 'exact', head: true }).eq('status', 'open'),
       ]);
 
       setStats({
-        totalJobs: jobsRes.count || 0,
-        totalCandidates: candidatesRes.count || 0,
-        hiredCandidates: hiredRes.count || 0,
-        activeJobs: activeRes.count || 0,
+        totalJobs: jobsRes.count ?? 0,
+        totalCandidates: candidatesRes.count ?? 0,
+        hiredCandidates: hiredRes.count ?? 0,
+        activeJobs: activeRes.count ?? 0,
       });
       setLoading(false);
     };
 
     fetchStats();
-  }, [user]);
+  }, [user, role]);
 
   const statCards = [
     { title: 'Total Jobs', value: stats.totalJobs, icon: Briefcase, color: 'text-primary' },

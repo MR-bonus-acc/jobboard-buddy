@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { ArrowLeft, Plus, Mail, Phone, GripVertical, User } from 'lucide-react';
+import { ArrowLeft, Plus, Mail, Phone, GripVertical, Linkedin } from 'lucide-react';
 
 interface Candidate {
   id: string;
@@ -32,18 +32,18 @@ interface Job {
 }
 
 const STAGES = [
-  { id: 'applied', label: 'Applied', color: 'bg-muted' },
-  { id: 'screening', label: 'Screening', color: 'bg-info/20' },
-  { id: 'interview', label: 'Interview', color: 'bg-warning/20' },
-  { id: 'offer', label: 'Offer', color: 'bg-success/20' },
-  { id: 'hired', label: 'Hired', color: 'bg-primary/20' },
-  { id: 'rejected', label: 'Rejected', color: 'bg-destructive/20' },
+  { id: 'applied', label: 'Applied', color: 'bg-slate-100 dark:bg-slate-800' },
+  { id: 'screening', label: 'Screening', color: 'bg-blue-50 dark:bg-blue-900/30' },
+  { id: 'interview', label: 'Interview', color: 'bg-amber-50 dark:bg-amber-900/30' },
+  { id: 'offer', label: 'Offer', color: 'bg-emerald-50 dark:bg-emerald-900/30' },
+  { id: 'hired', label: 'Hired', color: 'bg-indigo-50 dark:bg-indigo-900/30' },
+  { id: 'rejected', label: 'Rejected', color: 'bg-red-50 dark:bg-red-900/30' },
 ];
 
 export default function JobKanban() {
   const { jobId } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, role } = useAuth();
   const [job, setJob] = useState<Job | null>(null);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,11 +51,18 @@ export default function JobKanban() {
   const [newCandidate, setNewCandidate] = useState({ name: '', email: '', phone: '', notes: '' });
   const [draggedCandidate, setDraggedCandidate] = useState<string | null>(null);
 
+  const isAdmin = role === 'admin';
+
   const fetchData = async () => {
     if (!user || !jobId) return;
 
+    let jobQuery = supabase.from('jobs').select('*').eq('id', jobId);
+    if (!isAdmin) {
+      jobQuery = jobQuery.eq('user_id', user.id);
+    }
+
     const [jobRes, candidatesRes] = await Promise.all([
-      supabase.from('jobs').select('*').eq('id', jobId).eq('user_id', user.id).single(),
+      jobQuery.single(),
       supabase.from('candidates').select('*').eq('job_id', jobId).order('created_at', { ascending: false }),
     ]);
 
@@ -213,11 +220,11 @@ export default function JobKanban() {
             onDragOver={handleDragOver}
             onDrop={() => handleDrop(stage.id)}
           >
-            <Card className={`border-border/50 ${stage.color}`}>
+            <Card className={`rounded-xl border border-border/60 shadow-sm ${stage.color}`}>
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium flex items-center justify-between">
                   {stage.label}
-                  <Badge variant="secondary" className="ml-2">
+                  <Badge variant="secondary" className="ml-2 rounded-md">
                     {getCandidatesByStage(stage.id).length}
                   </Badge>
                 </CardTitle>
@@ -228,15 +235,15 @@ export default function JobKanban() {
                     key={candidate.id}
                     draggable
                     onDragStart={() => handleDragStart(candidate.id)}
-                    className="cursor-grab active:cursor-grabbing bg-card border-border/50 hover:border-primary/30 transition-colors"
+                    className="kanban-card cursor-grab active:cursor-grabbing border-border/60"
                   >
                     <CardContent className="p-3">
                       <div className="flex items-start gap-2">
                         <GripVertical className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                              <User className="w-4 h-4 text-primary" />
+                            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                              <Linkedin className="w-4 h-4 text-primary" />
                             </div>
                             <div className="min-w-0">
                               <p className="font-medium text-foreground truncate">{candidate.name}</p>

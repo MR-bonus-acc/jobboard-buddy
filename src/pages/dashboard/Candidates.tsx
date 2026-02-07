@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Users, Mail, Phone, Briefcase, LayoutGrid, List, Search, GripVertical, User } from 'lucide-react';
+import { Users, Mail, Phone, Briefcase, LayoutGrid, List, Search, GripVertical, User, Linkedin } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface CandidateWithJob {
@@ -32,52 +32,68 @@ interface CandidateWithJob {
 }
 
 const STAGES = [
-  { id: 'applied', label: 'Applied', color: 'bg-muted' },
-  { id: 'screening', label: 'Screening', color: 'bg-info/20' },
-  { id: 'interview', label: 'Interview', color: 'bg-warning/20' },
-  { id: 'offer', label: 'Offer', color: 'bg-success/20' },
-  { id: 'hired', label: 'Hired', color: 'bg-primary/20' },
-  { id: 'rejected', label: 'Rejected', color: 'bg-destructive/20' },
+  { id: 'applied', label: 'Applied', color: 'bg-slate-100 dark:bg-slate-800' },
+  { id: 'screening', label: 'Screening', color: 'bg-blue-50 dark:bg-blue-900/30' },
+  { id: 'interview', label: 'Interview', color: 'bg-amber-50 dark:bg-amber-900/30' },
+  { id: 'offer', label: 'Offer', color: 'bg-emerald-50 dark:bg-emerald-900/30' },
+  { id: 'hired', label: 'Hired', color: 'bg-indigo-50 dark:bg-indigo-900/30' },
+  { id: 'rejected', label: 'Rejected', color: 'bg-red-50 dark:bg-red-900/30' },
 ];
 
-const stageColors: Record<string, string> = {
-  applied: 'bg-muted text-muted-foreground',
-  screening: 'bg-info/20 text-info',
-  interview: 'bg-warning/20 text-warning',
-  offer: 'bg-success/20 text-success',
-  hired: 'bg-primary/20 text-primary',
-  rejected: 'bg-destructive/20 text-destructive',
+const stageBadgeClasses: Record<string, string> = {
+  applied: 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700',
+  screening: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/60 dark:text-blue-200 dark:border-blue-800',
+  interview: 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/60 dark:text-amber-200 dark:border-amber-800',
+  offer: 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/60 dark:text-emerald-200 dark:border-emerald-800',
+  hired: 'bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-900/60 dark:text-indigo-200 dark:border-indigo-800',
+  rejected: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/60 dark:text-red-200 dark:border-red-800',
 };
 
 export default function Candidates() {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
   const [candidates, setCandidates] = useState<CandidateWithJob[]>([]);
+  const [allJobsForFilter, setAllJobsForFilter] = useState<{ id: string; title: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchName, setSearchName] = useState('');
   const [jobTitleFilter, setJobTitleFilter] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'table' | 'kanban'>('kanban');
   const [draggedCandidate, setDraggedCandidate] = useState<string | null>(null);
 
+  const isAdmin = role === 'admin';
+
   useEffect(() => {
-    const fetchCandidates = async () => {
+    const fetchData = async () => {
       if (!user) return;
 
-      const { data, error } = await supabase
+      let candidatesQuery = supabase
         .from('candidates')
         .select('id, job_id, name, email, phone, stage, created_at, jobs(id, title)')
-        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
+      if (!isAdmin) {
+        candidatesQuery = candidatesQuery.eq('user_id', user.id);
+      }
 
-      if (!error) {
-        setCandidates(data || []);
+      const [candidatesRes, jobsRes] = await Promise.all([
+        candidatesQuery,
+        isAdmin ? supabase.from('jobs').select('id, title').order('title') : Promise.resolve({ data: null, error: null }),
+      ]);
+
+      if (!candidatesRes.error) {
+        setCandidates((candidatesRes.data as CandidateWithJob[]) || []);
+      }
+      if (isAdmin && jobsRes.data) {
+        setAllJobsForFilter(jobsRes.data as { id: string; title: string }[]);
       }
       setLoading(false);
     };
 
-    fetchCandidates();
-  }, [user]);
+    fetchData();
+  }, [user, isAdmin]);
 
   const jobTitles = useMemo(() => {
+    if (isAdmin && allJobsForFilter.length > 0) {
+      return allJobsForFilter.map((j) => ({ id: j.id, title: j.title }));
+    }
     const titles = new Map<string, string>();
     candidates.forEach((c) => {
       if (c.jobs?.id && c.jobs?.title) {
@@ -85,7 +101,7 @@ export default function Candidates() {
       }
     });
     return Array.from(titles.entries()).map(([id, title]) => ({ id, title }));
-  }, [candidates]);
+  }, [candidates, isAdmin, allJobsForFilter]);
 
   const filteredCandidates = useMemo(() => {
     let list = candidates;
@@ -142,38 +158,37 @@ export default function Candidates() {
         <p className="text-muted-foreground">View all candidates across all jobs</p>
       </div>
 
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-          <div className="relative flex-1 sm:max-w-xs">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by name or email..."
-              value={searchName}
-              onChange={(e) => setSearchName(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-          <Select value={jobTitleFilter} onValueChange={setJobTitleFilter}>
-            <SelectTrigger className="w-full sm:w-[200px]">
-              <SelectValue placeholder="All job titles" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All job titles</SelectItem>
-              {jobTitles.map(({ id, title }) => (
-                <SelectItem key={id} value={id}>
-                  {title}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+      <div className="toolbar-unified flex-wrap">
+        <div className="relative flex-1 min-w-[180px] max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by name or email..."
+            value={searchName}
+            onChange={(e) => setSearchName(e.target.value)}
+            className="h-9 rounded-lg border-border bg-background pl-9"
+          />
         </div>
+        <Select value={jobTitleFilter} onValueChange={setJobTitleFilter}>
+          <SelectTrigger className="h-9 w-full min-w-[160px] max-w-[220px] rounded-lg border-border">
+            <SelectValue placeholder="All job titles" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All job titles</SelectItem>
+            {jobTitles.map(({ id, title }) => (
+              <SelectItem key={id} value={id}>
+                {title}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <div className="h-6 w-px bg-border shrink-0" aria-hidden />
         <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'table' | 'kanban')}>
-          <TabsList>
-            <TabsTrigger value="kanban" className="gap-2">
+          <TabsList className="h-9 rounded-lg bg-muted/60 p-1">
+            <TabsTrigger value="kanban" className="gap-2 rounded-md px-3 data-[state=active]:bg-card data-[state=active]:shadow-sm">
               <LayoutGrid className="w-4 h-4" />
               Kanban
             </TabsTrigger>
-            <TabsTrigger value="table" className="gap-2">
+            <TabsTrigger value="table" className="gap-2 rounded-md px-3 data-[state=active]:bg-card data-[state=active]:shadow-sm">
               <List className="w-4 h-4" />
               Table
             </TabsTrigger>
@@ -182,7 +197,7 @@ export default function Candidates() {
       </div>
 
       {filteredCandidates.length === 0 ? (
-        <Card className="border-border/50">
+        <Card className="rounded-xl border-border/60 bg-card shadow-sm">
           <CardContent className="flex flex-col items-center justify-center py-16">
             <Users className="w-12 h-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold text-foreground mb-2">No candidates match</h3>
@@ -194,7 +209,7 @@ export default function Candidates() {
           </CardContent>
         </Card>
       ) : viewMode === 'table' ? (
-        <Card className="border-border/50">
+        <Card className="rounded-xl border-border/60 bg-card shadow-sm">
           <Table>
             <TableHeader>
               <TableRow>
@@ -231,7 +246,7 @@ export default function Candidates() {
                     </span>
                   </TableCell>
                   <TableCell>
-                    <Badge className={stageColors[candidate.stage] || ''}>
+                    <Badge variant="outline" className={stageBadgeClasses[candidate.stage] || 'border-border'}>
                       {candidate.stage}
                     </Badge>
                   </TableCell>
@@ -252,11 +267,11 @@ export default function Candidates() {
               onDragOver={(e) => e.preventDefault()}
               onDrop={() => handleDrop(stage.id)}
             >
-              <Card className={`border-border/50 ${stage.color} h-full flex flex-col`}>
+              <Card className={`rounded-xl border border-border/60 shadow-sm h-full flex flex-col ${stage.color}`}>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-medium flex items-center justify-between">
                     {stage.label}
-                    <Badge variant="secondary" className="ml-2">
+                    <Badge variant="outline" className={stageBadgeClasses[stage.id] || ''}>
                       {getCandidatesByStage(stage.id).length}
                     </Badge>
                   </CardTitle>
@@ -267,15 +282,15 @@ export default function Candidates() {
                       key={candidate.id}
                       draggable
                       onDragStart={() => setDraggedCandidate(candidate.id)}
-                      className="cursor-grab active:cursor-grabbing bg-card border-border/50 hover:border-primary/30 transition-colors"
+                      className="kanban-card cursor-grab active:cursor-grabbing border-border/60"
                     >
                       <CardContent className="p-3">
                         <div className="flex items-start gap-2">
                           <GripVertical className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                                <User className="w-4 h-4 text-primary" />
+                              <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                <Linkedin className="w-4 h-4 text-primary" />
                               </div>
                               <div className="min-w-0">
                                 <p className="font-medium text-foreground truncate">{candidate.name}</p>

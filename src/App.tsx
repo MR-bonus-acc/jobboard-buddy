@@ -33,8 +33,8 @@ function ProtectedRoute({ children, requiredRole }: { children: React.ReactNode;
     return <Navigate to="/auth" replace />;
   }
 
-  if (requiredRole && role !== requiredRole) {
-    return <Navigate to={role === 'admin' ? '/admin' : '/dashboard'} replace />;
+  if (requiredRole === 'admin' && role !== 'admin') {
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <DashboardLayout>{children}</DashboardLayout>;

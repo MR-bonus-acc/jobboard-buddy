@@ -24,21 +24,24 @@ interface Job {
 }
 
 export default function Jobs() {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
   const navigate = useNavigate();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newJob, setNewJob] = useState({ title: '', description: '', department: '', location: '' });
 
+  const isAdmin = role === 'admin';
+
   const fetchJobs = async () => {
     if (!user) return;
 
-    const { data: jobsData, error } = await supabase
-      .from('jobs')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
+    let jobsQuery = supabase.from('jobs').select('*').order('created_at', { ascending: false });
+    if (!isAdmin) {
+      jobsQuery = jobsQuery.eq('user_id', user.id);
+    }
+
+    const { data: jobsData, error } = await jobsQuery;
 
     if (error) {
       toast.error('Failed to load jobs');
@@ -62,7 +65,7 @@ export default function Jobs() {
 
   useEffect(() => {
     fetchJobs();
-  }, [user]);
+  }, [user, isAdmin]);
 
   const handleCreateJob = async (e: React.FormEvent) => {
     e.preventDefault();
