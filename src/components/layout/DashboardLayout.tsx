@@ -20,7 +20,6 @@ import {
   Users, 
   LayoutDashboard, 
   LogOut,
-  Settings,
   UserPlus
 } from 'lucide-react';
 
@@ -46,7 +45,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const adminItems = [
     { title: 'Dashboard', url: '/admin', icon: LayoutDashboard },
-    { title: 'Manage Users', url: '/admin/users', icon: UserPlus },
+    { title: 'Manage Users', url: '/admin/users', icon: Users },
+    { title: 'Create Customer', url: '/admin/create-customer', icon: UserPlus },
   ];
 
   const items = role === 'admin' ? adminItems : customerItems;

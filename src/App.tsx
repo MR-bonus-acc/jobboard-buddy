@@ -14,6 +14,7 @@ import JobKanban from "./pages/dashboard/JobKanban";
 import Candidates from "./pages/dashboard/Candidates";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import ManageUsers from "./pages/admin/ManageUsers";
+import CreateCustomer from "./pages/admin/CreateCustomer";
 
 const queryClient = new QueryClient();
 
@@ -51,9 +52,10 @@ function AppRoutes() {
       <Route path="/dashboard/jobs/:jobId" element={<ProtectedRoute requiredRole="customer"><JobKanban /></ProtectedRoute>} />
       <Route path="/dashboard/candidates" element={<ProtectedRoute requiredRole="customer"><Candidates /></ProtectedRoute>} />
       
-      {/* Admin routes */}
+      {/* Admin routes - only user_roles.role = 'admin' can access */}
       <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute>} />
       <Route path="/admin/users" element={<ProtectedRoute requiredRole="admin"><ManageUsers /></ProtectedRoute>} />
+      <Route path="/admin/create-customer" element={<ProtectedRoute requiredRole="admin"><CreateCustomer /></ProtectedRoute>} />
       
       <Route path="*" element={<NotFound />} />
     </Routes>
