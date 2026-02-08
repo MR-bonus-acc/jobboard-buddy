@@ -7,9 +7,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+// Notera: Importerar Link som LinkIcon här
 import { Plus, Briefcase, MapPin, Building, Users, Pencil, Link as LinkIcon } from 'lucide-react';
 
 interface Job {
@@ -49,7 +50,6 @@ export default function Jobs() {
       return;
     }
 
-    // Hämta antal kandidater per jobb
     const jobsWithCounts = await Promise.all(
       (jobsData || []).map(async (job) => {
         const { count } = await supabase
@@ -69,7 +69,7 @@ export default function Jobs() {
   }, [user, isAdmin]);
 
   const copyApplyLink = (e: React.MouseEvent, jobId: string) => {
-    e.stopPropagation(); // Stoppa navigering till jobb-detaljer
+    e.stopPropagation(); // Förhindra att kortets onClick (navigering) körs
     const url = `${window.location.origin}/apply/${jobId}`;
     navigator.clipboard.writeText(url);
     toast.success("Ansökningslänk kopierad! Skicka denna till kandidaten.");
@@ -82,7 +82,7 @@ export default function Jobs() {
   };
 
   const handleOpenEdit = (e: React.MouseEvent, job: Job) => {
-    e.stopPropagation(); // Stoppa navigering till jobb-detaljer när man klickar edit
+    e.stopPropagation();
     setEditingJob(job);
     setFormData({
       title: job.title,
@@ -106,22 +106,14 @@ export default function Jobs() {
     };
 
     if (editingJob) {
-      const { error } = await supabase
-        .from('jobs')
-        .update(payload)
-        .eq('id', editingJob.id);
-
+      const { error } = await supabase.from('jobs').update(payload).eq('id', editingJob.id);
       if (error) {
         toast.error('Failed to update job');
         return;
       }
       toast.success('Job updated successfully');
     } else {
-      const { error } = await supabase.from('jobs').insert({
-        ...payload,
-        status: 'open'
-      });
-
+      const { error } = await supabase.from('jobs').insert({ ...payload, status: 'open' });
       if (error) {
         toast.error('Failed to create job');
         return;
@@ -176,7 +168,7 @@ export default function Jobs() {
                   id="location"
                   value={formData.location}
                   onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  placeholder="e.g. Remote, New York"
+                  placeholder="e.g. Remote, Stockholm"
                 />
               </div>
               <div className="space-y-2">
@@ -201,18 +193,6 @@ export default function Jobs() {
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
-      ) : jobs.length === 0 ? (
-        <Card className="border-border/50">
-          <CardContent className="flex flex-col items-center justify-center py-16">
-            <Briefcase className="w-12 h-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold text-foreground mb-2">No jobs yet</h3>
-            <p className="text-muted-foreground mb-4">Create your first job posting to start recruiting.</p>
-            <Button onClick={handleOpenAdd}>
-              <Plus className="w-4 h-4 mr-2" />
-              Create Job
-            </Button>
-          </CardContent>
-        </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {jobs.map((job) => (
@@ -226,10 +206,12 @@ export default function Jobs() {
                   <CardTitle className="text-lg group-hover:text-primary transition-colors">
                     {job.title}
                   </CardTitle>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-2">
                     <Badge variant={job.status === 'open' ? 'default' : 'secondary'}>
                       {job.status}
                     </Badge>
+                    
+                    {/* HÄR ÄR DIN SHARE-KNAPP */}
                     <Button 
                       variant="ghost" 
                       size="icon" 
@@ -239,6 +221,7 @@ export default function Jobs() {
                     >
                       <LinkIcon className="w-4 h-4" />
                     </Button>
+
                     <Button 
                       variant="ghost" 
                       size="icon" 
@@ -256,18 +239,14 @@ export default function Jobs() {
               </CardHeader>
               <CardContent>
                 <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                  {job.department && (
-                    <span className="flex items-center gap-1">
-                      <Building className="w-4 h-4" />
-                      {job.department}
-                    </span>
-                  )}
-                  {job.location && (
-                    <span className="flex items-center gap-1">
-                      <MapPin className="w-4 h-4" />
-                      {job.location}
-                    </span>
-                  )}
+                  <span className="flex items-center gap-1">
+                    <Building className="w-4 h-4" />
+                    {job.department}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <MapPin className="w-4 h-4" />
+                    {job.location}
+                  </span>
                   <span className="flex items-center gap-1">
                     <Users className="w-4 h-4" />
                     {job.candidate_count} candidates

@@ -47,6 +47,9 @@ function AppRoutes() {
       <Route path="/" element={<Index />} />
       <Route path="/auth" element={<Auth />} />
       
+      
+      <Route path="/apply/:jobId" element={<ApplyJob />} />
+      
       {/* Customer routes */}
       <Route path="/dashboard" element={<ProtectedRoute requiredRole="customer"><Dashboard /></ProtectedRoute>} />
       <Route path="/dashboard/jobs" element={<ProtectedRoute requiredRole="customer"><Jobs /></ProtectedRoute>} />
@@ -58,7 +61,6 @@ function AppRoutes() {
       <Route path="/admin/users" element={<ProtectedRoute requiredRole="admin"><ManageUsers /></ProtectedRoute>} />
       <Route path="/admin/create-customer" element={<ProtectedRoute requiredRole="admin"><CreateCustomer /></ProtectedRoute>} />
       
-      <Route path="/apply/:jobId" element={<ApplyJob />} />
 
       {/*404 error route*/}
       <Route path="*" element={<NotFound />} />
