@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Plus, Briefcase, MapPin, Building, Users, Pencil } from 'lucide-react';
+import { Plus, Briefcase, MapPin, Building, Users, Pencil, Link as LinkIcon } from 'lucide-react';
 
 interface Job {
   id: string;
@@ -67,6 +67,13 @@ export default function Jobs() {
   useEffect(() => {
     fetchJobs();
   }, [user, isAdmin]);
+
+  const copyApplyLink = (e: React.MouseEvent, jobId: string) => {
+    e.stopPropagation(); // Stoppa navigering till jobb-detaljer
+    const url = `${window.location.origin}/apply/${jobId}`;
+    navigator.clipboard.writeText(url);
+    toast.success("Ansökningslänk kopierad! Skicka denna till kandidaten.");
+  };
 
   const handleOpenAdd = () => {
     setEditingJob(null);
@@ -219,7 +226,7 @@ export default function Jobs() {
                   <CardTitle className="text-lg group-hover:text-primary transition-colors">
                     {job.title}
                   </CardTitle>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
                     <Badge variant={job.status === 'open' ? 'default' : 'secondary'}>
                       {job.status}
                     </Badge>
@@ -227,6 +234,16 @@ export default function Jobs() {
                       variant="ghost" 
                       size="icon" 
                       className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="Kopiera ansökningslänk"
+                      onClick={(e) => copyApplyLink(e, job.id)}
+                    >
+                      <LinkIcon className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="Redigera jobb"
                       onClick={(e) => handleOpenEdit(e, job)}
                     >
                       <Pencil className="w-4 h-4" />

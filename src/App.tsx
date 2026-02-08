@@ -15,6 +15,7 @@ import Candidates from "./pages/dashboard/Candidates";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import ManageUsers from "./pages/admin/ManageUsers";
 import CreateCustomer from "./pages/admin/CreateCustomer";
+import ApplyJob from "./pages/Applyjob";
 
 const queryClient = new QueryClient();
 
@@ -57,6 +58,9 @@ function AppRoutes() {
       <Route path="/admin/users" element={<ProtectedRoute requiredRole="admin"><ManageUsers /></ProtectedRoute>} />
       <Route path="/admin/create-customer" element={<ProtectedRoute requiredRole="admin"><CreateCustomer /></ProtectedRoute>} />
       
+      <Route path="/apply/:jobId" element={<ApplyJob />} />
+
+      {/*404 error route*/}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
