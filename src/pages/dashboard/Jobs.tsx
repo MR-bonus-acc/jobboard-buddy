@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Plus, Briefcase, MapPin, Building, Users } from 'lucide-react';
+import { Plus, Briefcase, MapPin, Building, Users, Pencil } from 'lucide-react';
 
 interface Job {
   id: string;
@@ -29,7 +29,8 @@ export default function Jobs() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [newJob, setNewJob] = useState({ title: '', description: '', department: '', location: '' });
+  const [editingJob, setEditingJob] = useState<Job | null>(null);
+  const [formData, setFormData] = useState({ title: '', description: '', department: '', location: '' });
 
   const isAdmin = role === 'admin';
 
@@ -48,7 +49,7 @@ export default function Jobs() {
       return;
     }
 
-    // Get candidate counts
+    // Hämta antal kandidater per jobb
     const jobsWithCounts = await Promise.all(
       (jobsData || []).map(async (job) => {
         const { count } = await supabase
@@ -67,25 +68,60 @@ export default function Jobs() {
     fetchJobs();
   }, [user, isAdmin]);
 
-  const handleCreateJob = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user || !newJob.title.trim()) return;
+  const handleOpenAdd = () => {
+    setEditingJob(null);
+    setFormData({ title: '', description: '', department: '', location: '' });
+    setDialogOpen(true);
+  };
 
-    const { error } = await supabase.from('jobs').insert({
-      user_id: user.id,
-      title: newJob.title,
-      description: newJob.description || null,
-      department: newJob.department || null,
-      location: newJob.location || null,
+  const handleOpenEdit = (e: React.MouseEvent, job: Job) => {
+    e.stopPropagation(); // Stoppa navigering till jobb-detaljer när man klickar edit
+    setEditingJob(job);
+    setFormData({
+      title: job.title,
+      description: job.description || '',
+      department: job.department || '',
+      location: job.location || '',
     });
+    setDialogOpen(true);
+  };
 
-    if (error) {
-      toast.error('Failed to create job');
-      return;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !formData.title.trim()) return;
+
+    const payload = {
+      user_id: user.id,
+      title: formData.title,
+      description: formData.description || null,
+      department: formData.department || null,
+      location: formData.location || null,
+    };
+
+    if (editingJob) {
+      const { error } = await supabase
+        .from('jobs')
+        .update(payload)
+        .eq('id', editingJob.id);
+
+      if (error) {
+        toast.error('Failed to update job');
+        return;
+      }
+      toast.success('Job updated successfully');
+    } else {
+      const { error } = await supabase.from('jobs').insert({
+        ...payload,
+        status: 'open'
+      });
+
+      if (error) {
+        toast.error('Failed to create job');
+        return;
+      }
+      toast.success('Job created successfully');
     }
 
-    toast.success('Job created successfully');
-    setNewJob({ title: '', description: '', department: '', location: '' });
     setDialogOpen(false);
     fetchJobs();
   };
@@ -99,23 +135,21 @@ export default function Jobs() {
         </div>
 
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              Create Job
-            </Button>
-          </DialogTrigger>
+          <Button onClick={handleOpenAdd}>
+            <Plus className="w-4 h-4 mr-2" />
+            Create Job
+          </Button>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Create New Job</DialogTitle>
+              <DialogTitle>{editingJob ? 'Edit Job' : 'Create New Job'}</DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleCreateJob} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4 pt-4">
               <div className="space-y-2">
                 <Label htmlFor="title">Job Title *</Label>
                 <Input
                   id="title"
-                  value={newJob.title}
-                  onChange={(e) => setNewJob({ ...newJob, title: e.target.value })}
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   placeholder="e.g. Senior Software Engineer"
                   required
                 />
@@ -124,8 +158,8 @@ export default function Jobs() {
                 <Label htmlFor="department">Department</Label>
                 <Input
                   id="department"
-                  value={newJob.department}
-                  onChange={(e) => setNewJob({ ...newJob, department: e.target.value })}
+                  value={formData.department}
+                  onChange={(e) => setFormData({ ...formData, department: e.target.value })}
                   placeholder="e.g. Engineering"
                 />
               </div>
@@ -133,8 +167,8 @@ export default function Jobs() {
                 <Label htmlFor="location">Location</Label>
                 <Input
                   id="location"
-                  value={newJob.location}
-                  onChange={(e) => setNewJob({ ...newJob, location: e.target.value })}
+                  value={formData.location}
+                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                   placeholder="e.g. Remote, New York"
                 />
               </div>
@@ -142,13 +176,15 @@ export default function Jobs() {
                 <Label htmlFor="description">Description</Label>
                 <Textarea
                   id="description"
-                  value={newJob.description}
-                  onChange={(e) => setNewJob({ ...newJob, description: e.target.value })}
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Job description..."
                   rows={4}
                 />
               </div>
-              <Button type="submit" className="w-full">Create Job</Button>
+              <Button type="submit" className="w-full">
+                {editingJob ? 'Save Changes' : 'Create Job'}
+              </Button>
             </form>
           </DialogContent>
         </Dialog>
@@ -164,7 +200,7 @@ export default function Jobs() {
             <Briefcase className="w-12 h-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold text-foreground mb-2">No jobs yet</h3>
             <p className="text-muted-foreground mb-4">Create your first job posting to start recruiting.</p>
-            <Button onClick={() => setDialogOpen(true)}>
+            <Button onClick={handleOpenAdd}>
               <Plus className="w-4 h-4 mr-2" />
               Create Job
             </Button>
@@ -175,15 +211,27 @@ export default function Jobs() {
           {jobs.map((job) => (
             <Card 
               key={job.id} 
-              className="border-border/50 cursor-pointer hover:border-primary/50 transition-colors"
+              className="border-border/50 cursor-pointer hover:border-primary/50 transition-all group relative"
               onClick={() => navigate(`/dashboard/jobs/${job.id}`)}
             >
               <CardHeader>
                 <div className="flex items-start justify-between">
-                  <CardTitle className="text-lg">{job.title}</CardTitle>
-                  <Badge variant={job.status === 'open' ? 'default' : 'secondary'}>
-                    {job.status}
-                  </Badge>
+                  <CardTitle className="text-lg group-hover:text-primary transition-colors">
+                    {job.title}
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={job.status === 'open' ? 'default' : 'secondary'}>
+                      {job.status}
+                    </Badge>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={(e) => handleOpenEdit(e, job)}
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
                 {job.description && (
                   <CardDescription className="line-clamp-2">{job.description}</CardDescription>
