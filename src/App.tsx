@@ -16,7 +16,6 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import ManageUsers from "./pages/admin/ManageUsers";
 import CreateCustomer from "./pages/admin/CreateCustomer";
 import ApplyJob from "./pages/Applyjob";
-
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children, requiredRole }: { children: React.ReactNode; requiredRole?: 'admin' | 'customer' }) {
